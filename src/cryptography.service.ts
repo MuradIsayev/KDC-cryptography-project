@@ -8,15 +8,78 @@ export class CryptographyService {
     return crypto.randomBytes(16).toString('hex');
   }
 
-  encryptWithRSA(data: string, publicKey: string): string {
-    const buffer = Buffer.from(data, 'utf-8');
-    const encrypted = crypto.publicEncrypt(publicKey, buffer);
-    return encrypted.toString('base64');
+  generateRSAKeyPair(): { privateKey: string; publicKey: string } {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+
+    return { privateKey, publicKey };
   }
 
-  decryptWithRSA(encryptedData: string, privateKey: string): string {
-    const buffer = Buffer.from(encryptedData, 'base64');
-    const decrypted = crypto.privateDecrypt(privateKey, buffer);
-    return decrypted.toString('utf-8');
+  encryptSessionKey(sessionKey: string, publicKey: string) {
+    const encryptedMessage = crypto.publicEncrypt(
+      {
+        key: publicKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      Buffer.from(sessionKey),
+    );
+
+    return encryptedMessage.toString('base64');
+  }
+
+  decryptSessionKey(encryptedSessionKey: string, privateKey: string) {
+    const decryptedMessage = crypto.privateDecrypt(
+      {
+        key: privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: 'sha256',
+      },
+      Buffer.from(encryptedSessionKey, 'base64'),
+    );
+
+    return decryptedMessage.toString();
+  }
+
+  encryptMessage(message: string, sessionKey: string): string {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(
+      'aes-256-gcm',
+      Buffer.from(sessionKey, 'hex'),
+      iv,
+    );
+    const encrypted = Buffer.concat([
+      cipher.update(message, 'utf-8'),
+      cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    const encryptedMessage = Buffer.concat([iv, tag, encrypted]).toString(
+      'hex',
+    );
+    return encryptedMessage;
+  }
+
+  decryptMessage(encryptedMessage: string, sessionKey: string): string {
+    const data = Buffer.from(encryptedMessage, 'hex');
+    const iv = data.slice(0, 16);
+    const tag = data.slice(16, 32);
+    const encrypted = data.slice(32);
+
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      Buffer.from(sessionKey, 'hex'),
+      iv,
+    );
+    decipher.setAuthTag(tag);
+
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]).toString('utf-8');
+
+    return decrypted;
   }
 }
