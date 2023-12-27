@@ -1,4 +1,3 @@
-// cryptography.service.ts
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 
@@ -44,7 +43,7 @@ export class CryptographyService {
     return decryptedMessage.toString();
   }
 
-  encryptMessage(message: string, sessionKey: string): string {
+  encryptMessage(decryptedMessage: string, sessionKey: string): string {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(
       'aes-256-gcm',
@@ -52,7 +51,7 @@ export class CryptographyService {
       iv,
     );
     const encrypted = Buffer.concat([
-      cipher.update(message, 'utf-8'),
+      cipher.update(decryptedMessage, 'utf-8'),
       cipher.final(),
     ]);
     const tag = cipher.getAuthTag();

@@ -1,8 +1,8 @@
-// app.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CryptographyService } from './cryptography.service';
 import { UserService } from './users/users.service';
-import { SendMessageDto } from './users/dto/send-message.dto';
+import { GenerateSessionKeyDto } from './users/dto/generate-session-key.dto';
+import { MessageDto } from './users/dto/message.dto';
 
 @Injectable()
 export class AppService {
@@ -19,7 +19,10 @@ export class AppService {
     return this.cryptographyService.generateRSAKeyPair();
   }
 
-  async generateSessionKey({ sender, receiver }: SendMessageDto): Promise<any> {
+  async generateSessionKey({
+    sender,
+    receiver,
+  }: GenerateSessionKeyDto): Promise<any> {
     const senderUser = await this.userService.findUserByUsername(sender);
     const receiverUser = await this.userService.findUserByUsername(receiver);
 
@@ -47,26 +50,39 @@ export class AppService {
     };
   }
 
-  async decryptMessage({
-    sender,
-    receiver,
-    message: encryptedMessage,
-  }: SendMessageDto): Promise<string> {
+  async encryptMessage(messageDto: MessageDto): Promise<string> {
+    const { sender, receiver, message, sessionKey } = messageDto;
+
     const senderUser = await this.userService.findUserByUsername(sender);
     const receiverUser = await this.userService.findUserByUsername(receiver);
 
     if (!senderUser || !receiverUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Sender or receiver not found');
     }
 
-    const sessionKeyForReceiver = this.cryptographyService.decryptSessionKey(
-      encryptedMessage,
-      receiverUser.publicKey,
+    // Encrypt the message using the session key
+    const encryptedMessage = this.cryptographyService.encryptMessage(
+      message,
+      sessionKey,
     );
 
+    return encryptedMessage;
+  }
+
+  async decryptMessage(messageDto: MessageDto): Promise<string> {
+    const { sender, receiver, message, sessionKey } = messageDto;
+
+    const senderUser = await this.userService.findUserByUsername(sender);
+    const receiverUser = await this.userService.findUserByUsername(receiver);
+
+    if (!senderUser || !receiverUser) {
+      throw new NotFoundException('Sender or receiver not found');
+    }
+
+    // Decrypt the message using the session key
     const decryptedMessage = this.cryptographyService.decryptMessage(
-      encryptedMessage,
-      sessionKeyForReceiver,
+      message,
+      sessionKey,
     );
 
     return decryptedMessage;
