@@ -1,3 +1,4 @@
+// app.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CryptographyService } from './cryptography.service';
 import { UserService } from './users/users.service';
@@ -14,11 +15,11 @@ export class AppService {
     return 'Hello World!';
   }
 
-  async generateSessionKey({
-    sender,
-    receiver,
-    message,
-  }: SendMessageDto): Promise<any> {
+  async generateKeyPair(): Promise<{ privateKey: string; publicKey: string }> {
+    return this.cryptographyService.generateRSAKeyPair();
+  }
+
+  async generateSessionKey({ sender, receiver }: SendMessageDto): Promise<any> {
     const senderUser = await this.userService.findUserByUsername(sender);
     const receiverUser = await this.userService.findUserByUsername(receiver);
 
@@ -29,17 +30,45 @@ export class AppService {
     const sessionKey = this.cryptographyService.generateSessionKey();
 
     const encryptedSessionKeyForSender =
-      this.cryptographyService.encryptWithRSA(
+      this.cryptographyService.encryptSessionKey(
         sessionKey,
         receiverUser.publicKey,
       );
 
     const encryptedSessionKeyForReceiver =
-      this.cryptographyService.encryptWithRSA(sessionKey, senderUser.publicKey);
+      this.cryptographyService.encryptSessionKey(
+        sessionKey,
+        senderUser.publicKey,
+      );
 
     return {
       senderEncryptedKey: encryptedSessionKeyForSender,
       receiverEncryptedKey: encryptedSessionKeyForReceiver,
     };
+  }
+
+  async decryptMessage({
+    sender,
+    receiver,
+    message: encryptedMessage,
+  }: SendMessageDto): Promise<string> {
+    const senderUser = await this.userService.findUserByUsername(sender);
+    const receiverUser = await this.userService.findUserByUsername(receiver);
+
+    if (!senderUser || !receiverUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const sessionKeyForReceiver = this.cryptographyService.decryptSessionKey(
+      encryptedMessage,
+      receiverUser.publicKey,
+    );
+
+    const decryptedMessage = this.cryptographyService.decryptMessage(
+      encryptedMessage,
+      sessionKeyForReceiver,
+    );
+
+    return decryptedMessage;
   }
 }
