@@ -1,7 +1,7 @@
-// app.controller.ts
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { SendMessageDto } from './users/dto/send-message.dto';
+import { MessageDto } from './users/dto/message.dto';
 import { AppService } from './app.service';
+import { GenerateSessionKeyDto } from './users/dto/generate-session-key.dto';
 
 @Controller()
 export class AppController {
@@ -12,18 +12,25 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Post('keys')
+  @Post('/keys')
   async generateKeys() {
     return await this.appService.generateKeyPair();
   }
 
-  @Post('generate-session-key')
-  async generateSessionKey(@Body() sendMessageDto: SendMessageDto) {
-    return await this.appService.generateSessionKey(sendMessageDto);
+  @Post('/generate-session-key')
+  async generateSessionKey(
+    @Body() generateSessionKeyDto: GenerateSessionKeyDto,
+  ) {
+    return await this.appService.generateSessionKey(generateSessionKeyDto);
   }
 
-  @Post('decrypt-message')
-  async decryptMessage(@Body() sendMessageDto: SendMessageDto) {
-    return await this.appService.decryptMessage(sendMessageDto);
+  @Post('/encrypt-message')
+  async encryptMessage(@Body() messageDto: MessageDto) {
+    return await this.appService.encryptMessage(messageDto);
+  }
+
+  @Post('/decrypt-message')
+  async decryptMessage(@Body() messageDto: MessageDto) {
+    return await this.appService.decryptMessage(messageDto);
   }
 }
