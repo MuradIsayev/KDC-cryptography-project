@@ -11,12 +11,20 @@ export class UserService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async registerUser(username: string, publicKey: string): Promise<User> {
+  async registerUser({ username, publicKey }): Promise<User> {
     const user = this.userRepository.create({ username, publicKey });
     return this.userRepository.save(user);
   }
 
-  async findUserByUsername(username: string): Promise<User | undefined> {
+  async findAllUsers(): Promise<User[]> {
+    return this.userRepository.find();
+  }
+
+  async findUserByUsername(username: string): Promise<User> {
     return this.userRepository.findOne({ where: { username } });
+  }
+
+  async deleteUser(id: number) {
+    return await this.userRepository.delete(id);
   }
 }
