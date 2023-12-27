@@ -1,44 +1,18 @@
-// app.controller.ts
-import { Body, Controller, Get, NotFoundException, Post } from '@nestjs/common';
-import { CryptographyService } from './cryptography.service';
-import { UserService } from './users/users.service';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { SendMessageDto } from './users/dto/send-message.dto';
+import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly cryptographyService: CryptographyService,
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
-  @Get()
+  @Get('/')
   getHello(): string {
-    return 'Welcome to Key Distribution Center';
+    return this.appService.getHello();
   }
 
   @Post('generate-session-key')
-  async generateSessionKey(
-    @Body() body: { sender: string; receiver: string },
-  ): Promise<any> {
-    const { sender, receiver } = body;
-    const senderUser = await this.userService.findUserByUsername(sender);
-    const receiverUser = await this.userService.findUserByUsername(receiver);
-
-    if (!senderUser || !receiverUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    const sessionKey = this.cryptographyService.generateSessionKey();
-    const encryptedSessionKeyForSender =
-      this.cryptographyService.encryptWithRSA(
-        sessionKey,
-        receiverUser.publicKey,
-      );
-    const encryptedSessionKeyForReceiver =
-      this.cryptographyService.encryptWithRSA(sessionKey, senderUser.publicKey);
-
-    return {
-      senderEncryptedKey: encryptedSessionKeyForSender,
-      receiverEncryptedKey: encryptedSessionKeyForReceiver,
-    };
+  async generateSessionKey(@Body() sendMessageDto: SendMessageDto) {
+    return await this.appService.generateSessionKey(sendMessageDto);
   }
 }
