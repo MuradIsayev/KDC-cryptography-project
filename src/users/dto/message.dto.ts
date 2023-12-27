@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty } from 'class-validator';
 
-export class SendMessageDto {
+export class MessageDto {
   @IsString()
   @IsNotEmpty()
   sender: string;
@@ -12,4 +12,8 @@ export class SendMessageDto {
   @IsString()
   @IsNotEmpty()
   message: string;
+
+  @IsString()
+  @IsNotEmpty()
+  sessionKey: string;
 }
