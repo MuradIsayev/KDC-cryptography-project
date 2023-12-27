@@ -1,4 +1,3 @@
-// user.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -9,6 +8,6 @@ export class User {
   @Column({ unique: true, nullable: false, length: 64, type: 'varchar' })
   username: string;
 
-  @Column({ nullable: false, type: 'text', length: 500 })
+  @Column({ nullable: false, type: 'text' })
   publicKey: string;
 }
